@@ -6,20 +6,6 @@
   <link rel="stylesheet" type="text/css" href="/style.css">
 
   <script>
-    /*
-    // returns the "message" attribute from the given data
-    const getMessageFromData = (data, type) => {
-
-      // xml response
-      if (type === 'text/xml') {
-        const parsedResponse = new window.DOMParser().parseFromString(data, 'text/xml');
-        return parsedResponse.querySelector('message').textContent;
-      }
-
-      // default json
-      const parsedResponse = JSON.parse(data);
-      return parsedResponse.message;
-    }
 
     //A function for handling our fetch response. Read init and sendFetch first.
     const handleResponse = async (response) => {
@@ -80,29 +66,62 @@
       });
     };
 
+    // function called when adding a user via the add user form
+    const nameFormSubmit = async (nameForm) => {
+      const name = document.getElementById('nameField').value;
+      const age = document.getElementById('ageField').value;
 
-    const sendFetch = async () => {
-      // check values of the dropdown boxes
-      const url = document.getElementById('page').value;
-      const type = document.getElementById('type').value;
+      const nameAction = nameForm.getAttribute('action');
+      const nameMethod = nameForm.getAttribute('method');
+
+      const formData = `name=${name}&age=${age}`;
 
       // configure options
       const options = {
-        method: 'GET',
-        headers: { 'Accept': type },
+        method: nameMethod,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: formData
+      }
+
+      const fetchPromise = fetch(nameAction, options);
+      fetchPromise.then((response) => { handleResponse(response) });
+    }
+
+    // makes either a GET or HEAD request to the correct URL when the form is submitted
+    const userFormSubmit = async (e) => {
+      const url = document.getElementById('urlField').value;
+      const method = document.getElementById('methodSelect').value;
+
+      // configure options
+      const options = {
+        method: method,
+        headers: {
+          'Accept': 'application/json'
+        },
       }
 
       const fetchPromise = fetch(url, options);
       fetchPromise.then((response) => { handleResponse(response) });
-    };
+    }
 
     const init = () => {
-      const sendButton = document.getElementById('send');
-      sendButton.addEventListener('click', sendFetch);
+      const nameForm = document.getElementById('nameForm');
+      const userForm = document.getElementById('userForm');
+
+      const addUser = (e) => {
+        e.preventDefault();
+        nameFormSubmit(nameForm);
+        return false;
+      }
+
+      nameForm.addEventListener("submit", addUser);
+      userForm.addEventListener("submit", userFormSubmit);
     };
 
     window.onload = init;
-    */
   </script>
 </head>
 
