@@ -13,18 +13,44 @@ const port = process.env.PORT || process.env.NODE_PORT || 3000;
 
 // key:value object to look up URL routes to specific functions
 const urlStruct = {
-  'GET': {
-    '/getUsers': tbd,
-    '/notReal': tbd
+  GET: {
+    '/getUsers': requestHandler.getUsers,
+    '/': htmlHandler.getIndex,
+    '/style.css': htmlHandler.getIndexCSS,
+    notFound: requestHandler.notFound,
   },
-  'HEAD': {
-    '/getUsers': tbd,
-    '/notReal': tbd
+  HEAD: {
+    '/getUsers': requestHandler.getUsersMeta,
+    notFound: requestHandler.notFoundMeta,
   },
-  'POST': {
-    '/addUser': tbd
+  POST: {
+    '/addUser': requestHandler.addUser,
   },
-  notFound: requestHandler.notFound,
+};
+
+const parseBody = (request, response, callback) => {
+  const body = [];
+
+  // if an error occurs, handle it
+  request.on('error', (err) => {
+    console.dir(err);
+    response.statusCode = 400;
+    response.end();
+  });
+
+  // called when receiving a piece of the data.
+  // it comes in order, so we just push the data onto the body array.
+  request.on('data', (chunk) => {
+    body.push(chunk);
+  });
+
+  // when the data is complete
+  request.on('end', () => {
+    const bodyString = Buffer.concat(body).toString();
+    const bodyParams = query.parse(bodyString);
+
+    callback(request, response, bodyParams);
+  });
 };
 
 // handle HTTP requests. In node the HTTP server will automatically
@@ -33,18 +59,21 @@ const onRequest = (request, response) => {
   // parse the url using the url module
   const parsedUrl = url.parse(request.url);
 
-  // if query provided, convert the query to a js object.
-  const params = query.parse(parsedUrl.query);
-
-  // get the requested data types
-  const acceptedTypes = request.headers.accept.split(',');
-
-  // if function exists, call it!
-  if (urlStruct[parsedUrl.pathname]) {
-    return urlStruct[parsedUrl.pathname](request, response, acceptedTypes, params);
+  // only support GET, HEAD, and POST
+  if (!urlStruct[request.method]) {
+    return urlStruct.HEAD.notFound(request, response);
   }
 
-  return urlStruct.notFound(request, response, acceptedTypes);
+  // if function exists, call it!
+  if (urlStruct[request.method][parsedUrl.pathname]) {
+    // post is special
+    if (request.method === 'POST') {
+      return parseBody(request, response, urlStruct[request.method][parsedUrl.pathname]);
+    }
+    return urlStruct[request.method][parsedUrl.pathname](request, response);
+  }
+
+  return urlStruct[request.method].notFound(request, response);
 };
 
 // start HTTP server

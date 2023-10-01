@@ -8,7 +8,7 @@
   <script>
 
     //A function for handling our fetch response. Read init and sendFetch first.
-    const handleResponse = async (response) => {
+    const handleResponse = async (response, parseResponse) => {
 
       response.text().then((resText) => {
 
@@ -30,39 +30,40 @@
           case 200: //Success
             h1.textContent = "Success";
             break;
+          case 201: //Created
+            h1.textContent = "Created";
+            break;
+          case 204: //Updated
+            h1.textContent = "Updated (No Content)";
+            break;
           case 400: //Bad Request
             h1.textContent = "Bad Request";
             break;
-          case 401: //Unauthorized
-            h1.textContent = "Unauthorized";
-            break;
-          case 403: //Forbidden
-            h1.textContent = "Forbidden";
-            break;
           case 404: //Not Found
-            h1.textContent = "Resource Not Found";
-            break;
-          case 500: //Internal Server Error
-            h1.textContent = "Internal Server Error";
-            break;
-          case 501: //Not Implemented
-            h1.textContent = "Not Implemented";
+            h1.textContent = "Not Found";
             break;
           default: //Anything Else
             h1.textContent = "Status Code not Implemented";
             break;
         }
 
-        // fill p with the message from the response
-        const messageResponse = getMessageFromData(resText, contentType);
-        if (messageResponse) {
-          p.textContent = `Message: ${messageResponse}`;
+        if (response.status != 204 && parseResponse) {
+          let obj = JSON.parse(resText);
+          console.log(obj);
+
+          if (response.status === 201 || response.status === 400 || response.status === 404) {
+            p.textContent = `Message: ${obj.message}`;
+          }
+
+          if (response.status === 200) {
+            p.textContent = resText;
+          }
         }
 
         //Add the elements to the screen.
         content.appendChild(h1);
         content.appendChild(p);
-        console.log(resText);
+        
       });
     };
 
@@ -78,7 +79,7 @@
 
       // configure options
       const options = {
-        method: nameMethod,
+        method: nameMethod.toUpperCase(),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
@@ -87,24 +88,25 @@
       }
 
       const fetchPromise = fetch(nameAction, options);
-      fetchPromise.then((response) => { handleResponse(response) });
+      fetchPromise.then((response) => { handleResponse(response, true) });
     }
 
     // makes either a GET or HEAD request to the correct URL when the form is submitted
-    const userFormSubmit = async (e) => {
+    const userFormSubmit = async () => {
+      
       const url = document.getElementById('urlField').value;
       const method = document.getElementById('methodSelect').value;
 
       // configure options
       const options = {
-        method: method,
+        method: method.toUpperCase(),
         headers: {
           'Accept': 'application/json'
         },
       }
 
       const fetchPromise = fetch(url, options);
-      fetchPromise.then((response) => { handleResponse(response) });
+      fetchPromise.then((response) => { handleResponse(response, options.method === "GET") });
     }
 
     const init = () => {
@@ -117,8 +119,14 @@
         return false;
       }
 
+      const getUsers = (e) => {
+        e.preventDefault();
+        userFormSubmit();
+        return false;
+      }
+
       nameForm.addEventListener("submit", addUser);
-      userForm.addEventListener("submit", userFormSubmit);
+      userForm.addEventListener("submit", getUsers);
     };
 
     window.onload = init;
